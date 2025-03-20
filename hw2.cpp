@@ -16,8 +16,8 @@ struct Module {
     int height = 0;
     bool orientation = HORIZONTAL; // false = horizontal, true = vertical
     int x, y; // Position of the module in the layout
-    Module* left_child = nullptr;
-    Module* right_child = nullptr;
+    Module* leftChild = nullptr;
+    Module* rightChild = nullptr;
     vector<pair<int, int>> shapeCurve; // Shape curve of the module
 };
 
@@ -40,8 +40,8 @@ Module* parseAndBuildTree(const string& expression, Module modules[], int N) {
             // Create a new parent module
             Module* parent = new Module(); // Initialize width and height later
             parent->id = c;
-            parent->left_child = leftChild;
-            parent->right_child = rightChild;
+            parent->leftChild = leftChild;
+            parent->rightChild = rightChild;
             
             moduleStack.push(parent);
         }
@@ -55,8 +55,8 @@ void printTree(Module * root) {
     if (root == NULL) {
         return;
     }
-    printTree(root->left_child);
-    printTree(root->right_child);
+    printTree(root->leftChild);
+    printTree(root->rightChild);
 
     cout << root->id << " width/height: ";
     cout << root->width << "/" << root->height << " ";
@@ -67,8 +67,8 @@ void printShapeCurve(Module * root) {
     if (root == NULL) {
         return;
     }
-    printShapeCurve(root->left_child);
-    printShapeCurve(root->right_child);
+    printShapeCurve(root->leftChild);
+    printShapeCurve(root->rightChild);
 
     for (auto& curve : root->shapeCurve) {
         cout << "(" << curve.first << " " << curve.second << ") ";
@@ -99,7 +99,7 @@ void combineVertically(Module& parent, Module& leftChild, Module& rightChild) {
 }
 
 void computeShapeCurve(Module& m) {
-    if (m.left_child == nullptr && m.right_child == nullptr) {
+    if (m.leftChild == nullptr && m.rightChild == nullptr) {
         // Base case: Leaf node (individual block)
         // Initialize shape curve with the block's dimensions
         m.shapeCurve.push_back({m.width, m.height});
@@ -107,21 +107,21 @@ void computeShapeCurve(Module& m) {
             m.shapeCurve.push_back({m.height, m.width});
         }
     } else {
-        computeShapeCurve(*m.left_child);
-        computeShapeCurve(*m.right_child);
+        computeShapeCurve(*m.leftChild);
+        computeShapeCurve(*m.rightChild);
 
         // Combine the shape curves of the children based on whether the cutline is horizontal or vertical
         if (m.id == '+') { // Horizontal cutline
-            combineHorizontally(m, *m.left_child, *m.right_child);
+            combineHorizontally(m, *m.leftChild, *m.rightChild);
         } else if (m.id == '*') { // Vertical cutline
-            combineVertically(m, *m.left_child, *m.right_child);
+            combineVertically(m, *m.leftChild, *m.rightChild);
         }
     }
 }
 
 int computeSmallestArea(Module& m) {
-    // Compute the smallest area
-    int smallestProduct = INT_MAX; // Initialize with max int value
+    // Compute the smallest area using the shape curve of the root module
+    int smallestProduct = INT_MAX;
     for (const auto& pair : m.shapeCurve) {
         int product = pair.first * pair.second;
         if (product < smallestProduct) {
@@ -145,7 +145,7 @@ void getOptimalDimensions(Module& m, int& width, int& height) {
 }
 
 void assignCoordinates(Module& m, int x, int y) {
-    if (m.left_child == nullptr && m.right_child == nullptr) {
+    if (m.leftChild == nullptr && m.rightChild == nullptr) {
         // Leaf node: Assign coordinates directly
         m.x = x;
         m.y = y;
@@ -157,12 +157,12 @@ void assignCoordinates(Module& m, int x, int y) {
 
         if (m.id == '+') { // Horizontal cutline
             // Assign coordinates to children
-            assignCoordinates(*m.left_child, x, y);
-            assignCoordinates(*m.right_child, x, y + m.left_child->height);
+            assignCoordinates(*m.leftChild, x, y);
+            assignCoordinates(*m.rightChild, x, y + m.leftChild->height);
         } else if (m.id == '*') { // Vertical cutline
             // Assign coordinates to children
-            assignCoordinates(*m.left_child, x, y);
-            assignCoordinates(*m.right_child, x + m.left_child->width, y);
+            assignCoordinates(*m.leftChild, x, y);
+            assignCoordinates(*m.rightChild, x + m.leftChild->width, y);
         }
 
         // Update the current module's coordinates
@@ -174,12 +174,12 @@ void assignCoordinates(Module& m, int x, int y) {
 }
 
 void outputCoordinates(Module& m) {
-    if (m.left_child == nullptr && m.right_child == nullptr) {
+    if (m.leftChild == nullptr && m.rightChild == nullptr) {
         // Leaf node: Output vertex coordinates
         cout << "(" << m.x << " " << m.y << ") (" << m.x + m.width << " " << m.y << ") (" << m.x << " " << m.y + m.height << ") (" << m.x + m.width << " " << m.y + m.height << ")" << endl;
     } else {
-        outputCoordinates(*m.left_child);
-        outputCoordinates(*m.right_child);
+        outputCoordinates(*m.leftChild);
+        outputCoordinates(*m.rightChild);
     }
 }
 
