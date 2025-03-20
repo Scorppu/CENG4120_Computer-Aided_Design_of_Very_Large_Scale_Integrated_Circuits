@@ -46,12 +46,12 @@ Module* parseAndBuildTree(const string& expression, Module modules[], int N) {
             moduleStack.push(parent);
         }
     }
-    
     // The root of the slicing tree is the last element in the stack
     return moduleStack.top();
 }
 
-void printTree (Module * root) {
+void printTree(Module * root) {
+    // Prints the tree in Post-order traversal
     if (root == NULL) {
         return;
     }
@@ -62,25 +62,18 @@ void printTree (Module * root) {
     cout << root->width << "/" << root->height << " ";
 }
 
-void computeShapeCurve (Module& m) {
-    if (m.left_child == nullptr && m.right_child == nullptr) {
-        // Base case: Leaf node (individual block)
-        // Initialize shape curve with the block's dimensions
-        m.shapeCurve.push_back({m.width, m.height});
-        if (m.width != m.height) { // If block can be rotated
-            m.shapeCurve.push_back({m.height, m.width});
-        }
-    } else {
-        computeShapeCurve(*m.left_child);
-        computeShapeCurve(*m.right_child);
-
-        // Combine the shape curves of the children based on whether the cutline is horizontal or vertical
-        if (m.id == '+') { // Horizontal cutline
-            combineHorizontally(m, *m.left_child, *m.right_child);
-        } else if (m.id == '*') { // Vertical cutline
-            combineVertically(m, *m.left_child, *m.right_child);
-        }
+void printShapeCurve(Module * root) {
+    // Prints the shape curve of each module in the tree in post-order traversal
+    if (root == NULL) {
+        return;
     }
+    printShapeCurve(root->left_child);
+    printShapeCurve(root->right_child);
+
+    for (auto& curve : root->shapeCurve) {
+        cout << "(" << curve.first << " " << curve.second << ") ";
+    }
+    cout << endl;
 }
 
 void combineHorizontally(Module& parent, Module& leftChild, Module& rightChild) {
@@ -105,6 +98,27 @@ void combineVertically(Module& parent, Module& leftChild, Module& rightChild) {
     }
 }
 
+void computeShapeCurve(Module& m) {
+    if (m.left_child == nullptr && m.right_child == nullptr) {
+        // Base case: Leaf node (individual block)
+        // Initialize shape curve with the block's dimensions
+        m.shapeCurve.push_back({m.width, m.height});
+        if (m.width != m.height) { // If block can be rotated
+            m.shapeCurve.push_back({m.height, m.width});
+        }
+    } else {
+        computeShapeCurve(*m.left_child);
+        computeShapeCurve(*m.right_child);
+
+        // Combine the shape curves of the children based on whether the cutline is horizontal or vertical
+        if (m.id == '+') { // Horizontal cutline
+            combineHorizontally(m, *m.left_child, *m.right_child);
+        } else if (m.id == '*') { // Vertical cutline
+            combineVertically(m, *m.left_child, *m.right_child);
+        }
+    }
+}
+
 int main(int argc, char * argv[]) {
     if (argc < 2 || argc > 3) {
         printf("usage: hw2 <in_file> <out_file>");
@@ -123,20 +137,26 @@ int main(int argc, char * argv[]) {
     int N;  // number of modules
     inputFP >> N;
     Module modules[N]; // Array to store blocks
-    // Read block dimensions
     for (int i = 0; i < N; i++) {
+        // Read block dimensions
         inputFP >> modules[i].width >> modules[i].height;
     }
-    // Read the Polish expression (last line)
+    
     string line;
     string polishExpression;
     while (getline(inputFP, line)) {
+        // Read the Polish expression (last line)
         polishExpression = line;
     }
     inputFP.close();
-    // cout << polishExpression << endl;
+
     Module* root = parseAndBuildTree(polishExpression, modules, N); // Builds the tree from the Polish expression
     printTree(root); // Prints the tree in post-order traversal
+    cout << endl;
+
+    computeShapeCurve(*root); // Computes the shape curve of each Module
+    printShapeCurve(root); // Prints the shape curve of each Module (for testing only)
+    cout << endl;
 
     return 0;
 }
