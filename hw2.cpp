@@ -7,14 +7,10 @@
 
 using namespace std;
 
-#define HORIZONTAL false
-#define VERTICAL true
-
 struct Module {
     char id;
     int width = 0;
     int height = 0;
-    bool orientation = HORIZONTAL; // false = horizontal, true = vertical
     int x, y; // Position of the module in the layout
     Module* leftChild = nullptr;
     Module* rightChild = nullptr;
@@ -38,7 +34,7 @@ Module* parseAndBuildTree(const string& expression, Module modules[], int N) {
             moduleStack.pop();
             
             // Create a new parent module
-            Module* parent = new Module(); // Initialize width and height later
+            Module* parent = new Module();
             parent->id = c;
             parent->leftChild = leftChild;
             parent->rightChild = rightChild;
@@ -51,19 +47,16 @@ Module* parseAndBuildTree(const string& expression, Module modules[], int N) {
 }
 
 void printTree(Module * root) {
-    // Prints the tree in Post-order traversal
+    // Prints the tree in Post-order traversal (only used in testing)
     if (root == NULL) {
         return;
     }
     printTree(root->leftChild);
     printTree(root->rightChild);
-
-    cout << root->id << " width/height: ";
-    cout << root->width << "/" << root->height << " ";
 }
 
 void printShapeCurve(Module * root) {
-    // Prints the shape curve of each module in the tree in post-order traversal
+    // Prints the shape curve of each module in the tree in post-order traversal (only used in testing)
     if (root == NULL) {
         return;
     }
@@ -100,8 +93,7 @@ void combineVertically(Module& parent, Module& leftChild, Module& rightChild) {
 
 void computeShapeCurve(Module& m) {
     if (m.leftChild == nullptr && m.rightChild == nullptr) {
-        // Base case: Leaf node (individual block)
-        // Initialize shape curve with the block's dimensions
+        // Leaf node: Initialize shape curve with the block's dimensions
         m.shapeCurve.push_back({m.width, m.height});
         if (m.width != m.height) { // If block can be rotated
             m.shapeCurve.push_back({m.height, m.width});
@@ -173,13 +165,13 @@ void assignCoordinates(Module& m, int x, int y) {
     }
 }
 
-void outputCoordinates(Module& m) {
+void outputCoordinates(Module& m, ofstream& outputFP) {
     if (m.leftChild == nullptr && m.rightChild == nullptr) {
         // Leaf node: Output vertex coordinates
-        cout << "(" << m.x << " " << m.y << ") (" << m.x + m.width << " " << m.y << ") (" << m.x << " " << m.y + m.height << ") (" << m.x + m.width << " " << m.y + m.height << ")" << endl;
+        outputFP << "(" << m.x << " " << m.y << ") (" << m.x + m.width << " " << m.y << ") (" << m.x << " " << m.y + m.height << ") (" << m.x + m.width << " " << m.y + m.height << ")" << endl;
     } else {
-        outputCoordinates(*m.leftChild);
-        outputCoordinates(*m.rightChild);
+        outputCoordinates(*m.leftChild, outputFP);
+        outputCoordinates(*m.rightChild, outputFP);
     }
 }
 
@@ -221,11 +213,19 @@ int main(int argc, char * argv[]) {
 
     computeShapeCurve(*root); // Computes the shape curve of each Module
     // printShapeCurve(root); // Prints the shape curve of each Module (for testing only)
-    // cout << endl;
+    assignCoordinates(*root, 0, 0); // resets the coordinates of the root module
 
-    assignCoordinates(*root, 0, 0);
-    outputCoordinates(*root); // Outputs the coordinates of each vertex
-    cout <<  computeSmallestArea(*root);
+    // Opening the output file
+    ofstream outputFP(outFile);
+    if (!outputFP.is_open()) {
+        cout << "Could not open file " << outFile << endl;
+        exit(1);
+    }
+
+    outputCoordinates(*root, outputFP); // Outputs the coordinates of each vertex
+    outputFP <<  computeSmallestArea(*root); // Outputs the smallest area
+
+    outputFP.close();
     return 0;
 }
 
