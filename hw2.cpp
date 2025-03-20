@@ -119,6 +119,71 @@ void computeShapeCurve(Module& m) {
     }
 }
 
+int computeSmallestArea(Module& m) {
+    // Compute the smallest area
+    int smallestProduct = INT_MAX; // Initialize with max int value
+    for (const auto& pair : m.shapeCurve) {
+        int product = pair.first * pair.second;
+        if (product < smallestProduct) {
+            smallestProduct = product;
+        }
+    }
+    return smallestProduct;
+}
+
+void getOptimalDimensions(Module& m, int& width, int& height) {
+    // Find the point on the shape curve that gives the smallest area
+    int smallestArea = INT_MAX;
+    for (const auto& pair : m.shapeCurve) {
+        int area = pair.first * pair.second;
+        if (area < smallestArea) {
+            smallestArea = area;
+            width = pair.first;
+            height = pair.second;
+        }
+    }
+}
+
+void assignCoordinates(Module& m, int x, int y) {
+    if (m.left_child == nullptr && m.right_child == nullptr) {
+        // Leaf node: Assign coordinates directly
+        m.x = x;
+        m.y = y;
+    } else {
+        // Determine the shape of the current module based on its shape curve
+        // For simplicity, assume we have a function to get the optimal dimensions
+        int width, height;
+        getOptimalDimensions(m, width, height);
+
+        if (m.id == '+') { // Horizontal cutline
+            // Assign coordinates to children
+            assignCoordinates(*m.left_child, x, y);
+            assignCoordinates(*m.right_child, x, y + m.left_child->height);
+        } else if (m.id == '*') { // Vertical cutline
+            // Assign coordinates to children
+            assignCoordinates(*m.left_child, x, y);
+            assignCoordinates(*m.right_child, x + m.left_child->width, y);
+        }
+
+        // Update the current module's coordinates
+        m.x = x;
+        m.y = y;
+        m.width = width;
+        m.height = height;
+    }
+}
+
+void outputCoordinates(Module& m) {
+    if (m.left_child == nullptr && m.right_child == nullptr) {
+        // Leaf node: Output vertex coordinates
+        cout << "(" << m.x << " " << m.y << ") (" << m.x + m.width << " " << m.y << ") (" << m.x << " " << m.y + m.height << ") (" << m.x + m.width << " " << m.y + m.height << ")" << endl;
+    } else {
+        outputCoordinates(*m.left_child);
+        outputCoordinates(*m.right_child);
+    }
+}
+
+
 int main(int argc, char * argv[]) {
     if (argc < 2 || argc > 3) {
         printf("usage: hw2 <in_file> <out_file>");
@@ -151,13 +216,16 @@ int main(int argc, char * argv[]) {
     inputFP.close();
 
     Module* root = parseAndBuildTree(polishExpression, modules, N); // Builds the tree from the Polish expression
-    printTree(root); // Prints the tree in post-order traversal
-    cout << endl;
+    // printTree(root); // Prints the tree in post-order traversal
+    // cout << endl;
 
     computeShapeCurve(*root); // Computes the shape curve of each Module
-    printShapeCurve(root); // Prints the shape curve of each Module (for testing only)
-    cout << endl;
+    // printShapeCurve(root); // Prints the shape curve of each Module (for testing only)
+    // cout << endl;
 
+    assignCoordinates(*root, 0, 0);
+    outputCoordinates(*root); // Outputs the coordinates of each vertex
+    cout <<  computeSmallestArea(*root);
     return 0;
 }
 
