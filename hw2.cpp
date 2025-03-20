@@ -9,11 +9,71 @@ using namespace std;
 #define HORIZONTAL false
 #define VERTICAL true
 
-struct Block {
-    int width;
-    int height;
-    bool orientation = HORIZONTAL; // false = horizontal, true = vertical 
+struct Module {
+    char id;
+    int width = 0;
+    int height = 0;
+    bool orientation = HORIZONTAL; // false = horizontal, true = vertical
+    int coord;
+    Module* left_child = nullptr;
+    Module* right_child = nullptr;
 };
+
+Module* parseAndBuildTree(const string& expression, Module modules[], int N) {
+    stack<Module*> moduleStack;
+    for (char c : expression) {
+        if (isspace(c)) {
+            continue; // Skip spaces
+        } else if (isdigit(c)) {
+            // Find the module corresponding to the character
+            int index = c - '0';
+            modules[index].id = c;
+            moduleStack.push(&modules[index]);
+        } else if (c == '+' || c == '*') {
+            Module* rightChild = moduleStack.top();
+            moduleStack.pop();
+            Module* leftChild = moduleStack.top();
+            moduleStack.pop();
+            
+            // Create a new parent module
+            Module* parent = new Module(); // Initialize width and height later
+            parent->id = c;
+            parent->left_child = leftChild;
+            parent->right_child = rightChild;
+            
+            // Determine orientation based on operator
+            // if (c == '+') {
+            //     parent->orientation = HORIZONTAL;
+            // } else {
+            //     parent->orientation = VERTICAL;
+            // }
+            
+            // Calculate width and height of the parent module
+            // if (parent->orientation == HORIZONTAL) {
+            //     parent->width = leftChild->width + rightChild->width;
+            //     parent->height = max(leftChild->height, rightChild->height);
+            // } else {
+            //     parent->width = max(leftChild->width, rightChild->width);
+            //     parent->height = leftChild->height + rightChild->height;
+            // }
+            
+            moduleStack.push(parent);
+        }
+    }
+    
+    // The root of the slicing tree is the last element in the stack
+    return moduleStack.top();
+}
+
+void printTree (Module * root) {
+    if (root == NULL) {
+        return;
+    }
+    printTree(root->left_child);
+    printTree(root->right_child);
+
+    cout << root->id << " ";
+}
 
 int main(int argc, char * argv[]) {
     if (argc < 2 || argc > 3) {
@@ -31,16 +91,16 @@ int main(int argc, char * argv[]) {
         exit(1);
     }
 
-    // number of blocks
+    // number of modules
     int N; 
     inputFP >> N;
 
     // Array to store blocks
-    Block blocks[N]; 
+    Module modules[N]; 
 
     // Read block dimensions
     for (int i = 0; i < N; i++) {
-        inputFP >> blocks[i].width >> blocks[i].height;
+        inputFP >> modules[i].width >> modules[i].height;
     }
 
     // Read the Polish expression (last line)
@@ -52,32 +112,15 @@ int main(int argc, char * argv[]) {
     inputFP.close();
 
     cout << polishExpression << endl;
-    stack<string> expressionStack;
-    string tmp[2];
-    string combined;
-    for (char c : polishExpression) {
-        if (std::isspace(c)) {
-            continue; // Skip spaces
-        }
-        if (c == '+' || c == '*') {
-            tmp[1] = expressionStack.top();
-            expressionStack.pop();
-            tmp[0] = expressionStack.top();
-            expressionStack.pop();
-            combined = "[" + tmp[0] + tmp[1] + string(1,c) + "]";
-            expressionStack.push(combined);
-        } else {
-            expressionStack.push(string(1,c));
-        }
-    }
 
-    string tmpoutputstring;
-    while (!expressionStack.empty()) {
-        tmpoutputstring += expressionStack.top();
-        expressionStack.pop();
-    }
-
-    cout << tmpoutputstring;
+    Module* root = parseAndBuildTree(polishExpression, modules, N);
+    printTree(root);
 
     return 0;
+}
+
+void compute_shape_curve(Module& m) {
+    compute_shape_curve(*m.left_child);
+    compute_shape_curve(*m.right_child);
+    // compute the shape curve of current module m ...
 }
