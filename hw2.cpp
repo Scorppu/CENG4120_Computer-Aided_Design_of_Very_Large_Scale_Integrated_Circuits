@@ -17,17 +17,42 @@ struct Module {
     vector<pair<int, int>> shapeCurve; // Shape curve of the module
 };
 
+// Module* parseAndBuildTree(const string& expression, Module modules[], int N) {
+//     stack<Module*> moduleStack;
+//     for (char c : expression) {
+//         if (isspace(c)) {
+//             continue; // Skip spaces
+//         } else if (isdigit(c)) {
+//             // Find the module corresponding to the character
+//             int index = c - '0';
+//             modules[index].id = c;
+//             moduleStack.push(&modules[index]);
+//         } else if (c == '+' || c == '*') {
+//             Module* rightChild = moduleStack.top();
+//             moduleStack.pop();
+//             Module* leftChild = moduleStack.top();
+//             moduleStack.pop();
+            
+//             // Create a new parent module
+//             Module* parent = new Module();
+//             parent->id = c;
+//             parent->leftChild = leftChild;
+//             parent->rightChild = rightChild;
+            
+//             moduleStack.push(parent);
+//         }
+//     }
+//     // The root of the slicing tree is the last element in the stack
+//     return moduleStack.top();
+// }
+
 Module* parseAndBuildTree(const string& expression, Module modules[], int N) {
     stack<Module*> moduleStack;
-    for (char c : expression) {
-        if (isspace(c)) {
-            continue; // Skip spaces
-        } else if (isdigit(c)) {
-            // Find the module corresponding to the character
-            int index = c - '0';
-            modules[index].id = c;
-            moduleStack.push(&modules[index]);
-        } else if (c == '+' || c == '*') {
+    istringstream iss(expression);
+    string token;
+
+    while (iss >> token) {
+        if (token == "+" || token == "*") {
             Module* rightChild = moduleStack.top();
             moduleStack.pop();
             Module* leftChild = moduleStack.top();
@@ -35,16 +60,22 @@ Module* parseAndBuildTree(const string& expression, Module modules[], int N) {
             
             // Create a new parent module
             Module* parent = new Module();
-            parent->id = c;
+            parent->id = token[0]; // Use the operator as the id
             parent->leftChild = leftChild;
             parent->rightChild = rightChild;
             
             moduleStack.push(parent);
+        } else {
+            // Convert token to an integer index
+            int index = stoi(token);
+            modules[index].id = '0' + index; // Set id as a character
+            moduleStack.push(&modules[index]);
         }
     }
     // The root of the slicing tree is the last element in the stack
     return moduleStack.top();
 }
+
 
 void printTree(Module * root) {
     // Prints the tree in Post-order traversal (only used in testing)
@@ -53,6 +84,7 @@ void printTree(Module * root) {
     }
     printTree(root->leftChild);
     printTree(root->rightChild);
+    cout << root->id << " ";
 }
 
 void printShapeCurve(Module * root) {
@@ -208,11 +240,11 @@ int main(int argc, char * argv[]) {
     inputFP.close();
 
     Module* root = parseAndBuildTree(polishExpression, modules, N); // Builds the tree from the Polish expression
-    // printTree(root); // Prints the tree in post-order traversal
-    // cout << endl;
+    printTree(root); // Prints the tree in post-order traversal
+    cout << endl;
 
     computeShapeCurve(*root); // Computes the shape curve of each Module
-    // printShapeCurve(root); // Prints the shape curve of each Module (for testing only)
+    printShapeCurve(root); // Prints the shape curve of each Module (for testing only)
     assignCoordinates(*root, 0, 0); // resets the coordinates of the root module
 
     // Opening the output file
