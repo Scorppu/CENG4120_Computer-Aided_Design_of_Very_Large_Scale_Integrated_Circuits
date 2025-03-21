@@ -50,29 +50,29 @@ Module* parseAndBuildTree(const string& expression, Module modules[], int N) {
     return moduleStack.top();
 }
 
-void printTree(Module * root) {
-    // Prints the tree in Post-order traversal (only used in testing)
-    if (root == NULL) {
-        return;
-    }
-    printTree(root->leftChild);
-    printTree(root->rightChild);
-    cout << root->id << " " << "(" <<root->width << " " << root->height << ")" << endl;
-}
+// void printTree(Module * root) {
+//     // Prints the tree in Post-order traversal (only used in testing)
+//     if (root == NULL) {
+//         return;
+//     }
+//     printTree(root->leftChild);
+//     printTree(root->rightChild);
+//     cout << root->id << " " << "(" <<root->width << " " << root->height << ")" << endl;
+// }
 
-void printShapeCurve(Module * root) {
-    // Prints the shape curve of each module in the tree in post-order traversal (only used in testing)
-    if (root == NULL) {
-        return;
-    }
-    printShapeCurve(root->leftChild);
-    printShapeCurve(root->rightChild);
+// void printShapeCurve(Module * root) {
+//     // Prints the shape curve of each module in the tree in post-order traversal (only used in testing)
+//     if (root == NULL) {
+//         return;
+//     }
+//     printShapeCurve(root->leftChild);
+//     printShapeCurve(root->rightChild);
 
-    for (auto& curve : root->shapeCurve) {
-        cout << "(" << curve.first << " " << curve.second << ") ";
-    }
-    cout << endl;
-}
+//     for (auto& curve : root->shapeCurve) {
+//         cout << "(" << curve.first << " " << curve.second << ") ";
+//     }
+//     cout << endl;
+// }
 
 void combineHorizontally(Module& parent, Module& leftChild, Module& rightChild) {
     // Combine the shape curves of the children horizontally
@@ -92,6 +92,19 @@ void combineVertically(Module& parent, Module& leftChild, Module& rightChild) {
             int width = max(leftCurve.first, rightCurve.first);
             int height = leftCurve.second + rightCurve.second;
             parent.shapeCurve.push_back({width, height});
+        }
+    }
+}
+
+void getOptimalDimensions(Module& m, int& width, int& height) {
+    // Find the point on the shape curve that gives the smallest area
+    int smallestArea = INT_MAX;
+    for (const auto& pair : m.shapeCurve) {
+        int area = pair.first * pair.second;
+        if (area < smallestArea) {
+            smallestArea = area;
+            height = pair.first;
+            width = pair.second;
         }
     }
 }
@@ -116,104 +129,137 @@ void computeShapeCurve(Module& m) {
     }
 }
 
-int computeSmallestArea(Module& m) {
-    // Compute the smallest area using the shape curve of the root module
-    int smallestProduct = INT_MAX;
-    for (const auto& pair : m.shapeCurve) {
-        int product = pair.first * pair.second;
-        if (product < smallestProduct) {
-            smallestProduct = product;
+// void assignCoordinates(Module& m, int x, int y) {
+//     bool foundOptimal = false;
+//     if (m.leftChild == nullptr && m.rightChild == nullptr) {
+//         // Leaf node:
+//         m.x = x;
+//         m.y = y;
+//     } else {
+//         int width, height;
+//         getOptimalDimensions(m, width, height);
+
+//         if (m.id == '+') {
+//             // Horizontal cutline
+//             // Find the optimal dimensions of the left and right children
+//             for (auto& curve1 : m.leftChild->shapeCurve) {
+//                 for (auto& curve2: m.rightChild->shapeCurve) {
+//                     if ((curve1.first + curve2.first) == height && max(curve1.second, curve2.second) == width) {
+//                         // Rotates the block if necessary
+//                         m.leftChild->width = curve1.second;
+//                         m.leftChild->height = curve1.first;
+//                         //Rotates the block if necessary
+//                         m.rightChild->width = curve2.second;
+//                         m.rightChild->height = curve2.first;
+//                         foundOptimal = true;
+
+//                         assignCoordinates(*m.leftChild, x, y);
+//                         assignCoordinates(*m.rightChild, x, y + m.leftChild->height);
+//                         break;
+//                     }
+//                 }
+//                 if (foundOptimal) {
+//                     break;
+//                 }
+//             }
+//         } else if (m.id == '*') {
+//             // Vertical cutline
+//             // Find the optimal dimensions of the left and right children
+//             for (auto& curve1 : m.leftChild->shapeCurve) {
+//                 for (auto& curve2: m.rightChild->shapeCurve) {
+//                     if (curve1.first + curve2.first == width && max(curve1.second, curve2.second) == height) {
+//                         // Rotates the block if necessary
+//                         m.leftChild->width = curve1.first;
+//                         m.leftChild->height = curve1.second;
+//                         // Rotates the block if necessary
+//                         m.rightChild->width = curve2.first;
+//                         m.rightChild->height = curve2.second;
+//                         foundOptimal = true;
+
+//                         assignCoordinates(*m.leftChild, x, y);
+//                         assignCoordinates(*m.rightChild, x + m.leftChild->width, y);
+//                         break;
+//                     }
+//                 }
+//                 if (foundOptimal) {
+//                     break;
+//                 }
+//             }
+//         }
+//         m.x = x;
+//         m.y = y;
+//         m.width = width;
+//         m.height = height;
+//     }
+// }
+void rotatingModulesH(int width,int height, Module& leftChild, Module& rightChild) {
+    for (auto& curve1 : leftChild.shapeCurve) {
+        for (auto& curve2: rightChild.shapeCurve) {
+            if ((curve1.first + curve2.first) == height && max(curve1.second, curve2.second) == width) {
+                // Rotates the block if necessary
+                leftChild.width = curve1.second;
+                leftChild.height = curve1.first;
+                rightChild.width = curve2.second;
+                rightChild.height = curve2.first;
+                break;
+            }
         }
     }
-    return smallestProduct;
 }
 
-void getOptimalDimensions(Module& m, int& width, int& height) {
-    // Find the point on the shape curve that gives the smallest area
-    int smallestArea = INT_MAX;
-    for (const auto& pair : m.shapeCurve) {
-        int area = pair.first * pair.second;
-        if (area < smallestArea) {
-            smallestArea = area;
-            height = pair.first;
-            width = pair.second;
+void rotatingModulesV(int width, int height, Module& leftChild, Module& rightChild) {
+    for (auto& curve1 : leftChild.shapeCurve) {
+        for (auto& curve2: rightChild.shapeCurve) {
+            if (max(curve1.first, curve2.first) == height && curve1.second + curve2.second == width) {
+                // Rotates the block if necessary
+                leftChild.width = curve1.first;
+                leftChild.height = curve1.second;
+                rightChild.width = curve2.first;
+                rightChild.height = curve2.second;
+                break;
+            }
         }
     }
 }
 
-void assignCoordinates(Module& m, int x, int y, int width, int height) {
-    bool foundOptimal = false;
+void assignCoordinates(Module& m, int x, int y) {
     if (m.leftChild == nullptr && m.rightChild == nullptr) {
-        // Leaf node:
+        // Leaf node: Assign coordinates directly
+        m.x = x;
+        m.y = y;
+    } else {
+        // Determine the shape of the current module based on its shape curve
+        // For simplicity, assume we have a function to get the optimal dimensions
+        int width, height;
+        getOptimalDimensions(m, width, height);
+
+        if (m.id == '+') { // Horizontal cutline
+            // Assign coordinates to children
+            // TODO: deal with rotation
+            rotatingModulesH(width, height, *m.leftChild, *m.rightChild);
+            assignCoordinates(*m.leftChild, x, y);
+            assignCoordinates(*m.rightChild, x, y + m.leftChild->height);
+        } else if (m.id == '*') { // Vertical cutline
+            // Assign coordinates to children
+            // TODO: deal with rotation
+            rotatingModulesV(width, height, *m.leftChild, *m.rightChild);
+            assignCoordinates(*m.leftChild, x, y);
+            assignCoordinates(*m.rightChild, x + m.leftChild->width, y);
+        }
+        // Update the current module's coordinates
         m.x = x;
         m.y = y;
         m.width = width;
         m.height = height;
-        return;
-    } else {
-        if (m.id == '+') {
-            // Horizontal cutline
-            // Find the optimal dimensions of the left and right children
-            for (auto& curve1 : m.leftChild->shapeCurve) {
-                for (auto& curve2: m.rightChild->shapeCurve) {
-                    if ((curve1.first + curve2.first) == height && max(curve1.second, curve2.second) == width) {
-                        // Found the optimal dimensions
-                        m.leftChild->x = x;
-                        m.leftChild->y = y;
-                        // Rotates the block if necessary
-                        m.leftChild->width = curve1.second;
-                        m.leftChild->height = curve1.first;
-
-                        m.rightChild->x = x;
-                        m.rightChild->y = y + curve1.first;
-                        //Rotates the block if necessary
-                        m.rightChild->width = curve2.second;
-                        m.rightChild->height = curve2.first;
-                        foundOptimal = true;
-                        break;
-                    }
-                }
-                if (foundOptimal) {
-                    break;
-                }
-            }
-        } else if (m.id == '*') {
-            // Vertical cutline
-            // Find the optimal dimensions of the left and right children
-            for (auto& curve1 : m.leftChild->shapeCurve) {
-                for (auto& curve2: m.rightChild->shapeCurve) {
-                    if (curve1.first + curve2.first == width && max(curve1.second, curve2.second) == height) {
-                        // Found the optimal dimensions
-                        m.leftChild->x = x;
-                        m.leftChild->y = y;
-                        // Rotates the block if necessary
-                        m.leftChild->width = curve1.first;
-                        m.leftChild->height = curve1.second;
-
-                        m.rightChild->x = x + curve1.first;
-                        m.rightChild->y = y;
-                        // Rotates the block if necessary
-                        m.rightChild->width = curve2.first;
-                        m.rightChild->height = curve2.second;
-                        foundOptimal = true;
-                        break;
-                    }
-                }
-                if (foundOptimal) {
-                    break;
-                }
-            }
-        }
-        assignCoordinates(*m.leftChild, m.leftChild->x, m.leftChild->y, m.leftChild->width, m.leftChild->height);
-        assignCoordinates(*m.rightChild, m.rightChild->x, m.rightChild->y, m.rightChild->width, m.rightChild->height);
     }
 }
 
-void assignCoordinatesHelper(Module& m, int x, int y) {
-    int width, height;
-    getOptimalDimensions(m, width, height);
-    assignCoordinates(m, x, y, width, height);
-}
+
+// void assignCoordinatesHelper(Module& m, int x, int y) {
+//     int width, height;
+//     getOptimalDimensions(m, width, height);
+//     assignCoordinates(m, x, y, width, height);
+// }
 
 // Function to collect all leaf nodes into a vector
 void collectLeafNodes(Module* m, vector<Module*>& leafNodes) {
@@ -228,7 +274,7 @@ void collectLeafNodes(Module* m, vector<Module*>& leafNodes) {
     }
 }
 
-// Modified function to output coordinates in order of Module.id
+// Prints the coordinates of each vertex of every module in order of module id
 void outputCoordinates(Module& m, ofstream& outputFP) {
     vector<Module*> leafNodes;
     collectLeafNodes(&m, leafNodes);
@@ -244,6 +290,19 @@ void outputCoordinates(Module& m, ofstream& outputFP) {
     }
 }
 
+// (ONLY USED IN FINAL OUTPUT)
+// Function to compute the smallest area of the root module and prints it to the output file
+int computeSmallestArea(Module& m) {
+    // Compute the smallest area using the shape curve of the root module
+    int smallestProduct = INT_MAX;
+    for (const auto& pair : m.shapeCurve) {
+        int product = pair.first * pair.second;
+        if (product < smallestProduct) {
+            smallestProduct = product;
+        }
+    }
+    return smallestProduct;
+}
 
 int main(int argc, char * argv[]) {
     if (argc < 2 || argc > 3) {
@@ -278,11 +337,13 @@ int main(int argc, char * argv[]) {
 
     Module* root = parseAndBuildTree(polishExpression, modules, N); // Builds the tree from the Polish expression
     // printTree(root); // Prints the tree in post-order traversal
-    cout << endl;
+    // cout << endl;
 
     computeShapeCurve(*root); // Computes the shape curve of each Module
     // printShapeCurve(root); // Prints the shape curve of each Module (for testing only)
-    assignCoordinatesHelper(*root, 0, 0); // resets the coordinates of the root module
+    // assignCoordinatesHelper(*root, 0, 0); // resets the coordinates of the root module
+    assignCoordinates(*root, 0, 0); // Assigns coordinates to each module
+
 
     // Opening the output file
     ofstream outputFP(outFile);
