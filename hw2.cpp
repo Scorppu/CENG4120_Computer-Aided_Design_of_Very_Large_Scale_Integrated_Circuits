@@ -60,26 +60,27 @@ Module* parseAndBuildTree(const string& expression, Module modules[], int N) {
 //     cout << root->id << " " << "(" <<root->width << " " << root->height << ")" << endl;
 // }
 
-// void printShapeCurve(Module * root) {
-//     // Prints the shape curve of each module in the tree in post-order traversal (only used in testing)
-//     if (root == NULL) {
-//         return;
-//     }
-//     printShapeCurve(root->leftChild);
-//     printShapeCurve(root->rightChild);
+void printShapeCurve(Module * root) {
+    // Prints the shape curve of each module in the tree in post-order traversal (only used in testing)
+    if (root == NULL) {
+        return;
+    }
+    printShapeCurve(root->leftChild);
+    printShapeCurve(root->rightChild);
 
-//     for (auto& curve : root->shapeCurve) {
-//         cout << "(" << curve.first << " " << curve.second << ") ";
-//     }
-//     cout << endl;
-// }
+    cout << root->id << ": ";
+    for (auto& curve : root->shapeCurve) {
+        cout << "(" << curve.first << " " << curve.second << ") ";
+    }
+    cout << endl;
+}
 
 void combineHorizontally(Module& parent, Module& leftChild, Module& rightChild) {
     // Combine the shape curves of the children horizontally
     for (auto& leftCurve : leftChild.shapeCurve) {
         for (auto& rightCurve : rightChild.shapeCurve) {
-            int width = leftCurve.first + rightCurve.first;
-            int height = max(leftCurve.second, rightCurve.second);
+            int width = max(leftCurve.first, rightCurve.first);
+            int height = leftCurve.second + rightCurve.second;
             parent.shapeCurve.push_back({width, height});
         }
     }
@@ -89,8 +90,8 @@ void combineVertically(Module& parent, Module& leftChild, Module& rightChild) {
     // Combine the shape curves of the children vertically
     for (auto& leftCurve : leftChild.shapeCurve) {
         for (auto& rightCurve : rightChild.shapeCurve) {
-            int width = max(leftCurve.first, rightCurve.first);
-            int height = leftCurve.second + rightCurve.second;
+            int width = leftCurve.first + rightCurve.first;
+            int height = max(leftCurve.second, rightCurve.second);
             parent.shapeCurve.push_back({width, height});
         }
     }
@@ -103,8 +104,8 @@ void getOptimalDimensions(Module& m, int& width, int& height) {
         int area = pair.first * pair.second;
         if (area < smallestArea) {
             smallestArea = area;
-            height = pair.first;
-            width = pair.second;
+            width = pair.first;
+            height = pair.second;
         }
     }
 }
@@ -138,7 +139,6 @@ void computeShapeCurve(Module& m) {
 //     } else {
 //         int width, height;
 //         getOptimalDimensions(m, width, height);
-
 //         if (m.id == '+') {
 //             // Horizontal cutline
 //             // Find the optimal dimensions of the left and right children
@@ -152,7 +152,7 @@ void computeShapeCurve(Module& m) {
 //                         m.rightChild->width = curve2.second;
 //                         m.rightChild->height = curve2.first;
 //                         foundOptimal = true;
-
+//
 //                         assignCoordinates(*m.leftChild, x, y);
 //                         assignCoordinates(*m.rightChild, x, y + m.leftChild->height);
 //                         break;
@@ -175,7 +175,7 @@ void computeShapeCurve(Module& m) {
 //                         m.rightChild->width = curve2.first;
 //                         m.rightChild->height = curve2.second;
 //                         foundOptimal = true;
-
+//
 //                         assignCoordinates(*m.leftChild, x, y);
 //                         assignCoordinates(*m.rightChild, x + m.leftChild->width, y);
 //                         break;
@@ -192,26 +192,13 @@ void computeShapeCurve(Module& m) {
 //         m.height = height;
 //     }
 // }
+
 void rotatingModulesH(int width,int height, Module& leftChild, Module& rightChild) {
     for (auto& curve1 : leftChild.shapeCurve) {
         for (auto& curve2: rightChild.shapeCurve) {
-            if ((curve1.first + curve2.first) == height && max(curve1.second, curve2.second) == width) {
+            if (max(curve1.first, curve2.first) == width && curve1.second + curve2.second == height) {
                 // Rotates the block if necessary
-                leftChild.width = curve1.second;
-                leftChild.height = curve1.first;
-                rightChild.width = curve2.second;
-                rightChild.height = curve2.first;
-                break;
-            }
-        }
-    }
-}
-
-void rotatingModulesV(int width, int height, Module& leftChild, Module& rightChild) {
-    for (auto& curve1 : leftChild.shapeCurve) {
-        for (auto& curve2: rightChild.shapeCurve) {
-            if (max(curve1.first, curve2.first) == height && curve1.second + curve2.second == width) {
-                // Rotates the block if necessary
+                cout << "+:" << curve1.first << " " << curve1.second << " " << curve2.first << " " << curve2.second << endl;   
                 leftChild.width = curve1.first;
                 leftChild.height = curve1.second;
                 rightChild.width = curve2.first;
@@ -222,29 +209,45 @@ void rotatingModulesV(int width, int height, Module& leftChild, Module& rightChi
     }
 }
 
-void assignCoordinates(Module& m, int x, int y) {
+void rotatingModulesV(int width, int height, Module& leftChild, Module& rightChild) {
+    for (auto& curve1 : leftChild.shapeCurve) {
+        for (auto& curve2: rightChild.shapeCurve) {
+            if ((curve1.first + curve2.first) == width && max(curve1.second, curve2.second) == height) {
+                // Rotates the block if necessary
+                cout << width;
+                cout << "*:" << curve1.first << " " << curve1.second << " " << curve2.first << " " << curve2.second << endl;   
+                leftChild.width = curve1.first;
+                leftChild.height = curve1.second;
+                rightChild.width = curve2.first;
+                rightChild.height = curve2.second;
+                break;
+            }
+        }
+    }
+}
+
+void assignCoordinates(Module& m, int x, int y, int width, int height) {
     if (m.leftChild == nullptr && m.rightChild == nullptr) {
         // Leaf node: Assign coordinates directly
+        if (m.id == '1') {
+            cout << m.width << " " << m.height << endl;
+        }
         m.x = x;
         m.y = y;
     } else {
         // Determine the shape of the current module based on its shape curve
         // For simplicity, assume we have a function to get the optimal dimensions
-        int width, height;
-        getOptimalDimensions(m, width, height);
 
         if (m.id == '+') { // Horizontal cutline
             // Assign coordinates to children
-            // TODO: deal with rotation
-            rotatingModulesH(width, height, *m.leftChild, *m.rightChild);
-            assignCoordinates(*m.leftChild, x, y);
-            assignCoordinates(*m.rightChild, x, y + m.leftChild->height);
+            rotatingModulesH(width, height, *m.leftChild, *m.rightChild); // Rotates the block if necessary
+            assignCoordinates(*m.leftChild, x, y, m.leftChild->width, m.leftChild->height);
+            assignCoordinates(*m.rightChild, x, y + m.leftChild->height, m.rightChild->width, m.rightChild->height);
         } else if (m.id == '*') { // Vertical cutline
             // Assign coordinates to children
-            // TODO: deal with rotation
-            rotatingModulesV(width, height, *m.leftChild, *m.rightChild);
-            assignCoordinates(*m.leftChild, x, y);
-            assignCoordinates(*m.rightChild, x + m.leftChild->width, y);
+            rotatingModulesV(width, height, *m.leftChild, *m.rightChild); // Rotates the block if necessary
+            assignCoordinates(*m.leftChild, x, y, m.leftChild->width, m.leftChild->height);
+            assignCoordinates(*m.rightChild, x + m.leftChild->width, y, m.rightChild->width, m.rightChild->height);
         }
         // Update the current module's coordinates
         m.x = x;
@@ -255,11 +258,11 @@ void assignCoordinates(Module& m, int x, int y) {
 }
 
 
-// void assignCoordinatesHelper(Module& m, int x, int y) {
-//     int width, height;
-//     getOptimalDimensions(m, width, height);
-//     assignCoordinates(m, x, y, width, height);
-// }
+void assignCoordinatesHelper(Module& m, int x, int y) {
+    int width, height;
+    getOptimalDimensions(m, width, height);
+    assignCoordinates(m, x, y, width, height);
+}
 
 // Function to collect all leaf nodes into a vector
 void collectLeafNodes(Module* m, vector<Module*>& leafNodes) {
@@ -340,9 +343,9 @@ int main(int argc, char * argv[]) {
     // cout << endl;
 
     computeShapeCurve(*root); // Computes the shape curve of each Module
-    // printShapeCurve(root); // Prints the shape curve of each Module (for testing only)
-    // assignCoordinatesHelper(*root, 0, 0); // resets the coordinates of the root module
-    assignCoordinates(*root, 0, 0); // Assigns coordinates to each module
+    printShapeCurve(root); // Prints the shape curve of each Module (for testing only)
+    assignCoordinatesHelper(*root, 0, 0); // resets the coordinates of the root module
+    // assignCoordinates(*root, 0, 0); // Assigns coordinates to each module
 
 
     // Opening the output file
